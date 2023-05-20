@@ -1,0 +1,4 @@
+{
+    // "notion_token": "secret_xxxxxxx", // integration token create in https://www.notion.so/my-integrations
+    // "hexo_post_dir": "/home/hexo-blog/source/_posts",  // local hexo post dir path
+}
