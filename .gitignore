@@ -1,3 +1,7 @@
 tmp/
 .history/
 .DS_*
+.vscode
+config.json
+history.json
+__pycache__
