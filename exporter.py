@@ -6,7 +6,8 @@ import json
 import shutil
 import logging
 import yaml
-logging.basicConfig(filename="history.log", level=logging.INFO)
+log_file = "history.log"
+logging.basicConfig(filename=log_file, level=logging.INFO, format="%(asctime)s %(name)s:%(levelname)s:%(message)s", datefmt="%a, %d %b %Y %H:%M:%S", filemode="a")
 logger = logging.getLogger()
 
 id_title_map_file = "id_title.json"
@@ -41,7 +42,7 @@ def get_post_title_with_id(page_id: str):
 
 def remove_post_with_title(title: str):
     if os.path.exists(os.path.join(file_base, title)):
-        logger.info("old post removed!")
+        logger.info("old post - {} removed!".format(title))
         shutil.rmtree(os.path.join(file_base, title))
         os.remove(os.path.join(file_base, title+".md"))
 
@@ -139,6 +140,10 @@ def remove_post_with_id(page_id: str):
     remove_post_with_title(title)
     clean_id_title_record(page_id)
 
+
+def clean_log_file():
+    f = open(log_file, "w")
+    f.close()
 
 if __name__ == "__main__":
     read_old_page_info("NAS守卫战")

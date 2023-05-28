@@ -13,3 +13,6 @@ if args.action == "export":
     exporter.notion2post(page_id=args.page_id, categories=args.categories, tags=args.tags, title=args.title)
 elif args.action == "remove":
     exporter.remove_post_with_id(page_id=args.page_id)
+elif args.action == "clean":
+    # clean log file:
+    exporter.clean_log_file()
