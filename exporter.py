@@ -54,7 +54,16 @@ def update_id_title_map(page_id: str, title: str):
     id_title_dict[page_id] = title
     # update the history (page_id title map) file
     json.dump(id_title_dict, open(id_title_map_file, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
-    
+
+
+def clean_id_title_record(page_id: str):
+    try:
+        id_title_dict = json.load(open(id_title_map_file, "r"))
+    except:
+        id_title_dict = dict()
+    id_title_dict.pop(page_id, None)
+    json.dump(id_title_dict, open(id_title_map_file, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+
 
 def process_content(content: str):
     # change <br/> to \n
@@ -122,7 +131,14 @@ def notion2post(page_id:str, categories:list, tags:list, title:str=None):
         # process content
         md_obj.write(process_content(origin_md))
         logger.info("new post: {}".format(md_file))
-    
+
+
+def remove_post_with_id(page_id: str):
+    title = get_post_title_with_id(page_id)
+    if title is None: return
+    remove_post_with_title(title)
+    clean_id_title_record(page_id)
+
 
 if __name__ == "__main__":
     read_old_page_info("NAS守卫战")
