@@ -5,7 +5,6 @@ import datetime
 import json
 import shutil
 import logging
-import yaml
 log_file = "history.log"
 logging.basicConfig(filename=log_file, level=logging.INFO, format="%(asctime)s %(name)s:%(levelname)s:%(message)s", datefmt="%a, %d %b %Y %H:%M:%S", filemode="a")
 logger = logging.getLogger()
@@ -76,16 +75,16 @@ def process_content(content: str):
 
 
 def read_old_page_info(old_title: str):
-    old_info_file = os.path.join(file_base, old_title, "info.yaml")
+    old_info_file = os.path.join(file_base, old_title, "info.json")
     with open(old_info_file, encoding="utf-8") as info_f:
-        page_info = yaml.safe_load(info_f)
+        page_info = json.load(info_f)
         return page_info
     
 
 def notion2post(page_id:str, categories:list, tags:list, title:str=None):
     logger.info("attempt to add a new hexo post with page_id = {}".format(page_id))
     old_title = get_post_title_with_id(page_id)
-    # TODO: read old page_info from yaml when old_title exists
+    # read old page_info from json when old_title exists
     if old_title is not None:
         # update post info and content
         logger.info("the old post of {} exists.".format(page_id))
@@ -96,6 +95,7 @@ def notion2post(page_id:str, categories:list, tags:list, title:str=None):
         if title is not None: page_info["title"] = title
         if len(categories) > 0: page_info["categories"] = categories
         if len(tags) > 0: page_info["tags"] = tags
+        page_info["updated"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%H:%S")
     else:
         # create a new post
         title = title or get_notion_title(page_id)
@@ -107,7 +107,7 @@ def notion2post(page_id:str, categories:list, tags:list, title:str=None):
             "tags": tags,
         }
         logger.info("the page info is: {}".format(page_info))
-    update_id_title_map(page_id, title)
+    update_id_title_map(page_id, page_info["title"])
     output_dir = os.path.join(file_base, page_info["title"])
 
     # get origin content data
@@ -116,15 +116,17 @@ def notion2post(page_id:str, categories:list, tags:list, title:str=None):
     content_exporter.export()
     
     # save or update page info to file
-    info_file = os.path.join(output_dir, "info.yaml")
+    info_file = os.path.join(output_dir, "info.json")
     with open(info_file, "w", encoding="utf-8") as info_f:
-        info_str = yaml.dump(page_info, allow_unicode=True)
+        info_str = json.dumps(page_info, ensure_ascii=False, indent=2)
         info_f.write(info_str)
 
     md_file = os.path.join(output_dir, "origin.md")
-    origin_md = "---\n{}\n---\n".format(info_str)
+    origin_md = "{}\n;;;\n".format(info_str[1:-1])
     with open(md_file, encoding="utf-8") as md_f:
         origin_md += md_f.read()
+    # remove origin markdown file, or there might be some error during post production
+    os.remove(md_file)
     
     # change the md file path (file_base/xxx.md)
     md_file = os.path.join(file_base, page_info["title"]+".md")
@@ -146,4 +148,9 @@ def clean_log_file():
     f.close()
 
 if __name__ == "__main__":
-    read_old_page_info("NAS守卫战")
+    file_base = "tmp"
+    page_id = "31c9ded666f543c590876a08526a4d64"
+    title = "NAS守卫战"
+    categories = ["学习", "脚本", "测试"]
+    tags = ["python", "scripts", "notion"]
+    notion2post(page_id, categories=categories, tags=tags, title=title)

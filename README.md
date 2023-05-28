@@ -25,7 +25,7 @@ use command line to export pages.
 
 ``` shell
 # export or update page to post
-python cmd_trigger.py --page_id 31c9ded666f543c590876a08526a4d64 --title '被黑客吊打的经历' --categories '[杂谈, 经历]' --tags 'linux' 'security' 'attack'
+python cmd_trigger.py --page_id 31c9ded666f543c590876a08526a4d64 --title '被黑客吊打的经历' --categories '杂谈' '经历' --tags 'linux' 'security' 'attack'
 # remove post with page id
 python cmd_trigger.py --action remove --page_id 31c9ded666f543c590876a08526a4d64
 ```
