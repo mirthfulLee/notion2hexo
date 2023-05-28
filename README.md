@@ -8,6 +8,7 @@ export simple notion page to hexo post with cmd line
 python > 3.7
 notion_client
 notion2md
+pyyaml
 
 # EXAMPLE
 ## config.json
