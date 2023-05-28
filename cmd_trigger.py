@@ -2,6 +2,7 @@ import argparse
 import exporter
 
 parser = argparse.ArgumentParser()
+parser.add_argument("action", type=str, default="export", help="the target action, including export, update, remove")
 parser.add_argument("page_id", type=str, help="the uid of notion page")
 parser.add_argument("--title", type=str, default=None, help="the title of the post")
 parser.add_argument("--categories", nargs="*", type=str, default=["杂谈"], help="the detailed category path of the post")

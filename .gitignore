@@ -2,6 +2,7 @@ tmp/
 .history/
 .DS_*
 .vscode
+*.log
 config.json
-history.json
+id_title.json
 __pycache__

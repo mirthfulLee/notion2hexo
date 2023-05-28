@@ -1,14 +1,19 @@
 import os
-import sys
 from notion_client import Client
 from notion2md.exporter.block import MarkdownExporter
 import datetime
 import json
 import shutil
+import logging
+logging.basicConfig(filename="history.log", level=logging.INFO)
+logger = logging.getLogger()
 
-config = json.load(open("config.json", "r"))
-os.environ["NOTION_TOKEN"] = config["notion_token"]
-file_base = config["hexo_post_dir"]
+try:
+    config = json.load(open("config.json", "r"))
+    os.environ["NOTION_TOKEN"] = config["notion_token"]
+    file_base = config["hexo_post_dir"]
+except:
+    logger.error("config.json not found!")
 
 
 def get_notion_title(page_id:str):
@@ -39,27 +44,41 @@ def info2yaml(page_info:dict):
     return yaml_str
 
 
+def remove_post_with_title(title: str):
+    if os.path.exists(os.path.join(file_base, title)):
+        logger.info("old post removed!")
+        shutil.rmtree(os.path.join(file_base, title))
+        os.remove(os.path.join(file_base, title+".md"))
+
+
 def remove_old_post(page_info: dict):
-    history_file = "history.json"
+    id_title_map_file = "id_title.json"
     try:
-        page_title_dict = json.load(open(history_file, "r"))
+        id_title_dict = json.load(open(id_title_map_file, "r"))
     except:
-        page_title_dict = dict()
-    if page_info["page_id"] in page_title_dict.keys():
-        old_title = page_title_dict[page_info["page_id"]]
-        # TODO: remove old post content
-        shutil.rmtree(os.path.join(file_base, old_title))
-        os.remove(os.path.join(file_base, old_title+".md"))
+        logger.critical("file 'id_title.json' not found!")
+        id_title_dict = dict()
+    if page_info["page_id"] in id_title_dict.keys():
+        # remove old post content
+        remove_post_with_title(id_title_dict[page_info["page_id"]])
     
-    page_title_dict[page_info["page_id"]] = page_info["title"]
-    # TODO: update the history (page_id title map) file
-    json.dump(page_title_dict, open(history_file, "w"), indent=2)
+    id_title_dict[page_info["page_id"]] = page_info["title"]
+    # update the history (page_id title map) file
+    json.dump(id_title_dict, open(id_title_map_file, "w", encoding="utf-8"), indent=2)
     
 
+def process_content(content: str):
+    # change <br/> to \n
+    content = content.replace("<br/>\n", "\n")
+    # delete useless \n
+    content = content.replace("\n\n-", "\n-")
+    content = content.replace("\n\n\n", "\n\n")
+    return content
 
 def notion2post(page_id:str, categories:list, tags:list, title:str=None):
+    logger.info("attempt to add a new hexo post with page_id = {}".format(page_id))
     if not title:
-        title = get_notion_title(page_id)
+        title = get_notion_title(page_id)    
     page_info = {
         "page_id": page_id,
         "title": title,
@@ -68,6 +87,8 @@ def notion2post(page_id:str, categories:list, tags:list, title:str=None):
         "tags": tags,
     }
     page_info["output_path"] = os.path.join(file_base, page_info["title"])
+    logger.info("the page info is: {}".format(page_info))
+
     remove_old_post(page_info)
 
     # get origin content data
@@ -81,17 +102,11 @@ def notion2post(page_id:str, categories:list, tags:list, title:str=None):
     with open(md_file, encoding="utf-8") as md_obj:
         origin_md += md_obj.read()
     
-    # change <br/> to \n
-    origin_md = origin_md.replace("<br/>\n", "\n")
-    # delete useless \n
-    origin_md = origin_md.replace("\n\n-", "\n-")
-    origin_md = origin_md.replace("\n\n\n", "\n\n")
-    
     # change the md file path (file_base/xxx.md)
     md_file = os.path.join(file_base, page_info["title"]+".md")
     with open(md_file, mode="w",encoding="utf-8") as md_obj:
-        md_obj.write(origin_md)
-        print("new post: {}".format(md_file))
+        md_obj.write(process_content(origin_md))
+        logger.info("new post: {}".format(md_file))
     
 
 if __name__ == "__main__":

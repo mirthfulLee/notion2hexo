@@ -6,14 +6,15 @@ export simple notion page to hexo post with cmd line
 
 # dependency
 python > 3.7
-notion_client > 
+notion_client
+notion2md
 
 # EXAMPLE
 ## config.json
 ``` json
 {
     "notion_token": "secret_xxxxxxx", // integration token create in https://www.notion.so/my-integrations
-    "hexo_post_dir": "/home/hexo-blog/source/_posts",  // local hexo post dir path
+    "hexo_post_dir": "/home/user-xxx/hexo-blog/source/_posts",  // local hexo post dir path
 }
 
 ```
