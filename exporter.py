@@ -5,33 +5,33 @@ import datetime
 import json
 import shutil
 import logging
+
 log_file = "history.log"
-logging.basicConfig(filename=log_file, level=logging.INFO, format="%(asctime)s %(name)s:%(levelname)s:%(message)s", datefmt="%a, %d %b %Y %H:%M:%S", filemode="a")
+logging.basicConfig(
+    filename=log_file,
+    level=logging.INFO,
+    format="%(asctime)s %(name)s:%(levelname)s:%(message)s",
+    datefmt="%a, %d %b %Y %H:%M:%S",
+    filemode="a",
+)
 logger = logging.getLogger()
 # output log to stream as well
 stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.INFO)
 logger.addHandler(stream_handler)
 
-id_title_map_file = "id_title.json"
-config_file = "config.json"
+id_title_map_file = "id_title.log"
 
-# read config file
-try:
-    config = json.load(open(config_file, "r"))
-    os.environ["NOTION_TOKEN"] = config["notion_token"]
-    file_base = config["hexo_post_dir"]
-except:
-    logger.error("config.json not found!")
+file_base = "./source/_posts/"
 
 
-def get_notion_title(page_id:str):
+def get_notion_title(page_id: str):
     # get page title as post title
     native_client = Client(auth=os.environ["NOTION_TOKEN"])
     page_properties = native_client.pages.retrieve(page_id)
     page_title = page_properties["properties"]["title"]["title"][0]["plain_text"]
     return page_title
-    
+
 
 def get_post_filename_with_id(page_id: str):
     try:
@@ -39,7 +39,7 @@ def get_post_filename_with_id(page_id: str):
         if page_id in id_title_dict.keys():
             return id_title_dict[page_id]
     except:
-        logger.critical("file 'id_title.json' not found!")
+        logger.critical("file '{}' not found!".format(id_title_map_file))
         return None
 
 
@@ -47,7 +47,7 @@ def remove_post_with_filename(filename: str):
     if os.path.exists(os.path.join(file_base, filename)):
         logger.info("old post - {} removed!".format(filename))
         shutil.rmtree(os.path.join(file_base, filename))
-        os.remove(os.path.join(file_base, filename+".md"))
+        os.remove(os.path.join(file_base, filename + ".md"))
 
 
 def update_id_title_map(page_id: str, title: str):
@@ -57,7 +57,12 @@ def update_id_title_map(page_id: str, title: str):
         id_title_dict = dict()
     id_title_dict[page_id] = title
     # update the history (page_id title map) file
-    json.dump(id_title_dict, open(id_title_map_file, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+    json.dump(
+        id_title_dict,
+        open(id_title_map_file, "w", encoding="utf-8"),
+        indent=2,
+        ensure_ascii=False,
+    )
 
 
 def clean_id_filename_record(page_id: str):
@@ -66,7 +71,12 @@ def clean_id_filename_record(page_id: str):
     except:
         id_title_dict = dict()
     id_title_dict.pop(page_id, None)
-    json.dump(id_title_dict, open(id_title_map_file, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+    json.dump(
+        id_title_dict,
+        open(id_title_map_file, "w", encoding="utf-8"),
+        indent=2,
+        ensure_ascii=False,
+    )
 
 
 def process_content(content: str):
@@ -83,9 +93,9 @@ def read_old_page_info(old_title: str):
     with open(old_info_file, encoding="utf-8") as info_f:
         page_info = json.load(info_f)
         return page_info
-    
 
-def notion2post(page_id:str, categories:list, tags:list, title:str=None):
+
+def notion2post(page_id: str, categories: list, tags: list, title: str = None):
     logger.info("attempt to add a new hexo post with page_id = {}".format(page_id))
     old_filename = get_post_filename_with_id(page_id)
     # read old page_info from json when old_title exists
@@ -96,9 +106,12 @@ def notion2post(page_id:str, categories:list, tags:list, title:str=None):
         logger.info("the old page info is {}".format(page_info))
         remove_post_with_filename(old_filename)
         # update post info
-        if title is not None: page_info["title"] = title
-        if len(categories) > 0: page_info["categories"] = categories
-        if len(tags) > 0: page_info["tags"] = tags
+        if title is not None:
+            page_info["title"] = title
+        if len(categories) > 0:
+            page_info["categories"] = categories
+        if len(tags) > 0:
+            page_info["tags"] = tags
         page_info["updated"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%H:%S")
     else:
         # create a new post
@@ -111,7 +124,7 @@ def notion2post(page_id:str, categories:list, tags:list, title:str=None):
             "tags": tags,
         }
         logger.info("the page info is: {}".format(page_info))
-    
+
     # the title might includes '/' which could result to error
     # multiple page might have same title
     filename = "notion-{}-{}".format(title, page_id[:8])
@@ -120,10 +133,15 @@ def notion2post(page_id:str, categories:list, tags:list, title:str=None):
     output_dir = os.path.join(file_base, filename)
 
     # get origin content data
-    content_exporter = MarkdownExporter(block_id=page_id, output_path=output_dir, 
-                                        output_filename="origin",download=True, unzipped=True)
+    content_exporter = MarkdownExporter(
+        block_id=page_id,
+        output_path=output_dir,
+        output_filename="origin",
+        download=True,
+        unzipped=True,
+    )
     content_exporter.export()
-    
+
     # save or update page info to file
     info_file = os.path.join(output_dir, "info.json")
     with open(info_file, "w", encoding="utf-8") as info_f:
@@ -136,20 +154,21 @@ def notion2post(page_id:str, categories:list, tags:list, title:str=None):
         origin_md += md_f.read()
     # remove origin markdown file, or there might be some error during post production
     os.remove(md_file)
-    
+
     # change the md file path (file_base/xxx.md)
-    md_file = os.path.join(file_base, filename+".md")
-    with open(md_file, mode="w",encoding="utf-8") as md_obj:
+    md_file = os.path.join(file_base, filename + ".md")
+    with open(md_file, mode="w", encoding="utf-8") as md_obj:
         # process content
         md_obj.write(process_content(origin_md))
         logger.info("new post: {}".format(md_file))
-    
+
     update_id_title_map(page_id, filename)
 
 
 def remove_post_with_id(page_id: str):
     filename = get_post_filename_with_id(page_id)
-    if filename is None: return
+    if filename is None:
+        return
     remove_post_with_filename(filename)
     clean_id_filename_record(page_id)
 
@@ -158,3 +177,62 @@ def clean_log_file():
     f = open(log_file, "w")
     f.close()
 
+
+def export_new_page():
+    # ask for pageid
+    page_id = input("the id of notion page:")
+
+    # ask for title
+    print("\nthe title of notion page is:{}".format(get_notion_title(page_id)))
+    title = input("input the title of exported post(use notion title with empty):")
+    if title == "":
+        title = None
+
+    # ask for categories
+    categories = []
+    print("\ninput the top-down category of the post line by line")
+    while True:
+        cate = input("input the category(end with empty):")
+        if cate != "":
+            categories.append(cate)
+        else:
+            break
+
+    # ask for tags
+    tags = []
+    print("\ninput the tags of the post line by line")
+    while True:
+        tag = input("input the tag(end with empty):")
+        if tag != "":
+            tags.append(tag)
+        else:
+            break
+
+    notion2post(page_id=page_id, categories=categories, tags=tags, title=title)
+
+
+if __name__ == "__main__":
+    # ask for action
+    print(
+        "the action supported:\n\t* e: export new page\n\t* r: remove old post\n\t* c: clean export history"
+    )
+
+    while True:
+        action = input("\nthe action you wanted:")
+        if action == "e":
+            export_new_page()
+        elif action == "r":
+            # ask for page_id
+            page_id = input(
+                "\nthe id of notion page corresponding to the post to be removed:"
+            )
+            remove_post_with_id(page_id=page_id)
+        elif action == "c":
+            # clean log file:
+            clean_log_file()
+        elif action == "q":
+            quit()
+        else:
+            print("please input correct option(e/r/c/q)")
+            continue
+        break
